@@ -13,7 +13,7 @@ public interface IUserService
     Task<UserResponse> CreateAsync(CreateUserRequest req, string actor, CancellationToken ct);
     Task<UserResponse> UpdateAsync(int id, UpdateUserRequest req, string actor, CancellationToken ct);
     Task ChangePasswordAsync(int id, string currentPassword, string newPassword, string actor, bool bypassCurrent, CancellationToken ct);
-    Task DeleteAsync(int id, CancellationToken ct); // hard delete (ver nota abajo)
+    Task DeleteAsync(int id, CancellationToken ct); 
 }
 public class UserService(AppDbContext db) : IUserService
 {

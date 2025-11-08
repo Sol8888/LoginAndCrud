@@ -7,6 +7,7 @@ namespace LoginAndCrud.Infrastructure;
 public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(options)
 {
     public DbSet<User> Users => Set<User>();
+    public DbSet<Company> Companies { get; set; }
 
     protected override void OnModelCreating(ModelBuilder b)
     {
