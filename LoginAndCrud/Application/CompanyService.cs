@@ -87,14 +87,6 @@ public class CompanyService(AppDbContext db) : ICompanyService
     {
         var c = await db.Companies.FindAsync([id], ct) ?? throw new KeyNotFoundException("Empresa no encontrada.");
 
-        if (req.OwnerUserId.HasValue)
-        {
-            var owner = await db.Users.FindAsync([req.OwnerUserId.Value], ct)
-                        ?? throw new InvalidOperationException("Propietario no existe.");
-            if (owner.Role != "Company")
-                throw new InvalidOperationException("El propietario debe tener rol 'Company'.");
-            c.OwnerUserId = req.OwnerUserId.Value;
-        }
 
         if (!string.IsNullOrWhiteSpace(req.Name)) c.Name = req.Name!;
         if (!string.IsNullOrWhiteSpace(req.Description)) c.Description = req.Description!;

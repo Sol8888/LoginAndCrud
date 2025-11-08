@@ -9,5 +9,5 @@ public record PagedCompaniesResponse(int Page, int PageSize, int Total, IEnumera
 
 public record CreateCompanyRequest(string Name, string? Description, int OwnerUserId);
 
-public record UpdateCompanyRequest(string? Name, string? Description, int? OwnerUserId, bool? IsActive);
+public record UpdateCompanyRequest(string? Name, string? Description, bool? IsActive);
 
