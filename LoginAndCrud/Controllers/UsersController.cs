@@ -14,7 +14,7 @@ public class UsersController(IUserService svc) : ControllerBase
     private int CurrentUserId => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
     private bool IsAdmin => User.IsInRole("Admin");
 
-    // GET /api/users?page=1&pageSize=20&search=camila
+    
     [HttpGet]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<PagedUsersResponse>> Get([FromQuery] int page = 1, [FromQuery] int pageSize = 20, [FromQuery] string? search = null, CancellationToken ct = default)
@@ -29,19 +29,19 @@ public class UsersController(IUserService svc) : ControllerBase
         return u is null ? NotFound() : Ok(u);
     }
 
-    // POST /api/users
+    
     [HttpPost]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserResponse>> Create([FromBody] CreateUserRequest req, CancellationToken ct)
         => Ok(await svc.CreateAsync(req, Actor, ct));
 
-    // PATCH /api/users/5
+    
     [HttpPatch("{id:int}")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<UserResponse>> Update(int id, [FromBody] UpdateUserRequest req, CancellationToken ct)
         => Ok(await svc.UpdateAsync(id, req, Actor, ct));
 
-    // PUT /api/users/5/password  (el propio usuario)
+    
     [HttpPut("{id:int}/password")]
     public async Task<IActionResult> ChangeMyPassword(int id, [FromBody] ChangePasswordRequest req, CancellationToken ct)
     {
@@ -50,7 +50,7 @@ public class UsersController(IUserService svc) : ControllerBase
         return NoContent();
     }
 
-    // PUT /api/users/5/reset-password (admin fuerza reset sin current)
+    
     [HttpPut("{id:int}/reset-password")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> ResetPassword(int id, [FromBody] ResetPasswordRequest req, CancellationToken ct)
@@ -59,7 +59,7 @@ public class UsersController(IUserService svc) : ControllerBase
         return NoContent();
     }
 
-    // DELETE /api/users/5
+     
     [HttpDelete("{id:int}")]
     [Authorize(Roles = "Admin")]
     public async Task<IActionResult> Delete(int id, CancellationToken ct)

@@ -26,7 +26,7 @@ public class AuthController(IAuthService auth) : ControllerBase
         catch (Exception ex) { return Unauthorized(new { message = ex.Message }); }
     }
 
-    // ejemplo de endpoint protegido
+    
     [HttpGet("me")]
     [Authorize]
     public IActionResult Me() => Ok(new
