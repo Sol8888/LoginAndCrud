@@ -11,6 +11,12 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<EmployeeCompany> EmployeeCompanies => Set<EmployeeCompany>();
 
+    public DbSet<Activity> Activities { get; set; } = default!;
+    public DbSet<EmployeeCompany> EmployeeCompany { get; set; } = default!;
+    //public DbSet<ActivityCategory> ActivityCategories { get; set; } = default!;
+    //public DbSet<Category> Categories { get; set; } = default!;
+
+
     protected override void OnModelCreating(ModelBuilder b)
     {
         b.Entity<User>(e =>
@@ -44,10 +50,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
                 .HasForeignKey(ec => ec.UserId)
                 .OnDelete(DeleteBehavior.Cascade);
 
-            // Propiedades opcionales si quieres configurar más detalles
             e.Property(ec => ec.RoleInCompany).HasMaxLength(50);
             e.Property(ec => ec.CreatedBy).HasMaxLength(100);
             e.Property(ec => ec.UpdatedBy).HasMaxLength(100);
+        });
+
+        b.Entity<Activity>(e =>
+        {
+            e.ToTable("Activities", "dbo");
+            e.HasKey(a => a.Id);
+            e.Property(a => a.Title).HasMaxLength(150).IsRequired();
+            e.Property(a => a.Description).HasMaxLength(2000);
+            e.Property(a => a.LocationText).HasMaxLength(300);
+            e.Property(a => a.Currency).HasMaxLength(3);
+            e.Property(a => a.Status).HasMaxLength(20);
+            e.Property(a => a.CreatedBy).HasMaxLength(100);
+            e.Property(a => a.UpdatedBy).HasMaxLength(100);
+            e.HasOne(a => a.Company)
+             .WithMany(c => c.Activities)
+             .HasForeignKey(a => a.CompanyId)
+             .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

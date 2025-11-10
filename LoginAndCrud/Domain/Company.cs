@@ -19,6 +19,9 @@ namespace LoginAndCrud.Domain
         public int OwnerUserId { get; set; }
         public User OwnerUser { get; set; }
 
+        public ICollection<EmployeeCompany> Employees { get; set; } = new List<EmployeeCompany>();
+        public ICollection<Activity> Activities { get; set; } = new List<Activity>();
+
         public decimal AvgRating { get; set; } = 0;
         public int RatingCount { get; set; } = 0;
 
