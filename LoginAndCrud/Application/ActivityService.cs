@@ -67,10 +67,25 @@ public class ActivityService(AppDbContext db) : IActivityService
 
         if (role != "Admin")
         {
-            var companyId = await db.EmployeeCompany
-                .Where(e => e.UserId == userId)
-                .Select(e => e.CompanyId)
-                .FirstOrDefaultAsync(ct);
+            int companyId = 0;
+
+            if (role == "Company")
+            {
+                companyId = await db.Companies
+                    .Where(c => c.OwnerUserId == userId)
+                    .Select(c => c.Id)
+                    .FirstOrDefaultAsync(ct);
+            }
+            else if (role == "Employee")
+            {
+                companyId = await db.EmployeeCompany
+                    .Where(e => e.UserId == userId)
+                    .Select(e => e.CompanyId)
+                    .FirstOrDefaultAsync(ct);
+            }
+
+            if (companyId == 0)
+                throw new InvalidOperationException("El usuario no está asociado a una empresa.");
 
             query = query.Where(a => a.CompanyId == companyId);
         }
@@ -128,12 +143,16 @@ public class ActivityService(AppDbContext db) : IActivityService
 
     public async Task<ActivityResponse> CreateAsync(CreateActivityRequest req, int userId, string actor, CancellationToken ct)
     {
-        var company = await db.Companies.FindAsync([userId], ct) ?? throw new KeyNotFoundException("Empresa no encontrada.");
+        var companyId = await GetCompanyIdForUserAsync(userId, ct);
+
+        var company = await db.Companies
+            .FirstOrDefaultAsync(c => c.OwnerUserId == userId, ct)
+            ?? throw new KeyNotFoundException("Empresa no encontrada.");
 
 
         var activity = new Activity
         {
-            CompanyId = userId,
+            CompanyId = companyId,
             Title = req.Title,
             Description = req.Description,
             LocationText = req.LocationText,
@@ -160,9 +179,7 @@ public class ActivityService(AppDbContext db) : IActivityService
     public async Task<ActivityResponse> UpdateAsync(int id, UpdateActivityRequest req, int userId, string actor, CancellationToken ct)
     {
         var activity = await db.Activities.FindAsync([id], ct) ?? throw new KeyNotFoundException("Actividad no encontrada.");
-        if (activity.CompanyId != userId)
-            throw new UnauthorizedAccessException("No tiene permiso para editar esta actividad.");
-
+        
         activity.Title = req.Title;
         activity.Description = req.Description;
         activity.LocationText = req.LocationText;
