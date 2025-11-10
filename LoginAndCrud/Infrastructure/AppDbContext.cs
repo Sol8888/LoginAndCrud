@@ -13,7 +13,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
     public DbSet<Activity> Activities { get; set; } = default!;
     public DbSet<EmployeeCompany> EmployeeCompany { get; set; } = default!;
-    //public DbSet<ActivityCategory> ActivityCategories { get; set; } = default!;
+    public DbSet<ActivityCategory> ActivityCategories { get; set; }
     public DbSet<Category> Categories { get; set; } = default!;
 
 
@@ -41,7 +41,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
 
             // Relaciones
             e.HasOne(ec => ec.Company)
-                .WithMany()
+                .WithMany(c => c.Employees)
                 .HasForeignKey(ec => ec.CompanyId)
                 .OnDelete(DeleteBehavior.Cascade);
 
@@ -70,6 +70,29 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
              .WithMany(c => c.Activities)
              .HasForeignKey(a => a.CompanyId)
              .OnDelete(DeleteBehavior.Cascade);
+        });
+
+        b.Entity<ActivityCategory>(e =>
+        {
+            e.ToTable("ActivityCategory", "dbo");
+
+            // Clave compuesta
+            e.HasKey(ac => new { ac.ActivityId, ac.CategoryId });
+
+            // Relaciones
+            e.HasOne(ac => ac.Activity)
+                .WithMany(a => a.ActivityCategories)
+                .HasForeignKey(ac => ac.ActivityId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(ac => ac.Category)
+                .WithMany(c => c.ActivityCategories)
+                .HasForeignKey(ac => ac.CategoryId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            // Propiedades adicionales
+            e.Property(ac => ac.CreatedBy).HasMaxLength(100);
+            e.Property(ac => ac.UpdatedBy).HasMaxLength(100);
         });
     }
 }

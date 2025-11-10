@@ -8,5 +8,8 @@
         public DateTime? UpdatedAt { get; set; }
         public string CreatedBy { get; set; } = null!;
         public string? UpdatedBy { get; set; }
+
+        public ICollection<ActivityCategory> ActivityCategories { get; set; } = new List<ActivityCategory>();
+
     }
 }

@@ -24,4 +24,7 @@ public class Activity
     public string? UpdatedBy { get; set; }
 
     public Company Company { get; set; } = default!;
+
+    public ICollection<ActivityCategory> ActivityCategories { get; set; } = new List<ActivityCategory>();
+
 }

@@ -2,7 +2,7 @@
 using LoginAndCrud.Domain;
 using LoginAndCrud.Infrastructure;
 using Microsoft.EntityFrameworkCore;
-
+using LoginAndCrud.Infrastructure.Security;
 
 namespace LoginAndCrud.Application;
 
