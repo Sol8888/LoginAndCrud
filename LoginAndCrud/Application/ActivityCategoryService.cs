@@ -10,6 +10,9 @@ public interface IActivityCategoryService
 {
     Task AddCategoryAsync(int activityId, int categoryId, int userId, string role, string actor, CancellationToken ct);
     Task RemoveCategoryAsync(int activityId, int categoryId, int userId, string role, CancellationToken ct);
+    Task<List<ActivityWithCategoriesResponse>> GetActivitiesWithCategoriesByCompanyAsync(int userId, string role, CancellationToken ct);
+    Task<ActivityWithCategoriesResponse?> GetActivityWithCategoriesByIdAsync(int activityId, int userId, string role, CancellationToken ct);
+
 }
 
 public class ActivityCategoryService(AppDbContext db) : IActivityCategoryService
@@ -70,5 +73,70 @@ public class ActivityCategoryService(AppDbContext db) : IActivityCategoryService
             _ => null
         };
     }
+
+    public async Task<List<ActivityWithCategoriesResponse>> GetActivitiesWithCategoriesByCompanyAsync(int userId, string role, CancellationToken ct)
+    {
+        IQueryable<Activity> query = db.Activities
+            .Include(a => a.ActivityCategories)
+                .ThenInclude(ac => ac.Category)
+            .Include(a => a.Company);
+
+        query = role switch
+        {
+            "Admin" => query,
+            "Company" => query.Where(a => a.Company.OwnerUserId == userId),
+            "Employee" => query.Where(a => a.Company.Employees.Any(e => e.UserId == userId)),
+            _ => Enumerable.Empty<Activity>().AsQueryable()
+        };
+
+        var activities = await query.ToListAsync(ct);
+
+        return activities.Select(a => new ActivityWithCategoriesResponse
+        {
+            ActivityId = a.Id,
+            Title = a.Title,
+            Categories = a.ActivityCategories
+                .Where(ac => ac.Category != null)
+                .Select(ac => new CategoryDto
+                {
+                    Id = ac.Category!.Id,
+                    Name = ac.Category.Name
+                }).ToList()
+        }).ToList();
+    }
+
+    public async Task<ActivityWithCategoriesResponse?> GetActivityWithCategoriesByIdAsync(int activityId, int userId, string role, CancellationToken ct)
+    {
+        IQueryable<Activity> query = db.Activities
+            .Include(a => a.ActivityCategories)
+                .ThenInclude(ac => ac.Category)
+            .Include(a => a.Company);
+
+        query = role switch
+        {
+            "Admin" => query,
+            "Company" => query.Where(a => a.Company.OwnerUserId == userId),
+            "Employee" => query.Where(a => a.Company.Employees.Any(e => e.UserId == userId)),
+            _ => Enumerable.Empty<Activity>().AsQueryable()
+        };
+
+        var activity = await query.FirstOrDefaultAsync(a => a.Id == activityId, ct);
+        if (activity is null) return null;
+
+        return new ActivityWithCategoriesResponse
+        {
+            ActivityId = activity.Id,
+            Title = activity.Title,
+            Categories = activity.ActivityCategories
+                .Where(ac => ac.Category != null)
+                .Select(ac => new CategoryDto
+                {
+                    Id = ac.Category!.Id,
+                    Name = ac.Category.Name
+                }).ToList()
+        };
+    }
+
+
 }
 

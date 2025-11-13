@@ -9,7 +9,7 @@ using System.Security.Claims;
 namespace LoginAndCrud.Controllers;
 
 [ApiController]
-[Route("api/activities/{activityId:int}/categories")]
+[Route("api/activity-categories")]
 [Authorize]
 public class ActivityCategoryController(IActivityCategoryService svc) : ControllerBase
 {
@@ -31,5 +31,21 @@ public class ActivityCategoryController(IActivityCategoryService svc) : Controll
     {
         await svc.RemoveCategoryAsync(activityId, categoryId, CurrentUserId, Role, ct);
         return NoContent();
+    }
+
+    [HttpGet("by-company")]
+    [Authorize(Roles = "Admin,Company,Employee")]
+    public async Task<ActionResult<List<ActivityWithCategoriesResponse>>> GetByCompany(CancellationToken ct)
+    {
+        var items = await svc.GetActivitiesWithCategoriesByCompanyAsync(CurrentUserId, Role, ct);
+        return Ok(items);
+    }
+
+    [HttpGet("{activityId:int}")]
+    [Authorize(Roles = "Admin,Company,Employee")]
+    public async Task<ActionResult<ActivityWithCategoriesResponse?>> GetByActivityId(int activityId, CancellationToken ct)
+    {
+        var item = await svc.GetActivityWithCategoriesByIdAsync(activityId, CurrentUserId, Role, ct);
+        return item is null ? NotFound() : Ok(item);
     }
 }
