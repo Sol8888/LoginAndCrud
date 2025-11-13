@@ -146,8 +146,10 @@ public class ActivityService(AppDbContext db) : IActivityService
         var companyId = await GetCompanyIdForUserAsync(userId, ct);
 
         var company = await db.Companies
-            .FirstOrDefaultAsync(c => c.OwnerUserId == userId, ct)
+            .Include(c => c.Employees)
+            .FirstOrDefaultAsync(c => c.OwnerUserId == userId || c.Employees.Any(e => e.UserId == userId), ct)
             ?? throw new KeyNotFoundException("Empresa no encontrada.");
+
 
 
         var activity = new Activity
