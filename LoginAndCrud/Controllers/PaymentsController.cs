@@ -29,56 +29,83 @@ public class PaymentsController : ControllerBase
     }
 
     [HttpPost("webhook")]
-public async Task<IActionResult> StripeWebhook()
+    public async Task<IActionResult> StripeWebhook()
 {
-    var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+        var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
 
-    var stripeSignature = Request.Headers["Stripe-Signature"].FirstOrDefault();
+        var stripeSignature = Request.Headers["Stripe-Signature"].FirstOrDefault();
 
-    if (string.IsNullOrEmpty(stripeSignature))
-    {
-        return BadRequest("Missing Stripe-Signature header.");
-    }
-
-    Event stripeEvent;
-
-    try
-    {
-        stripeEvent = EventUtility.ConstructEvent(
-            json,
-            Request.Headers["Stripe-Signature"],
-            _webhookSecret
-        );
-    }
-    catch (Exception ex)
-    {
-        _logger.LogError(ex, "Stripe webhook error");
-        return BadRequest();
-    }
-
-    if (stripeEvent.Type == "payment_intent.succeeded")
+        if (string.IsNullOrEmpty(stripeSignature))
         {
-        var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
-        if (paymentIntent != null)
-        {
-            var payment = new Payment
-            {
-                Provider = "stripe",
-                ProviderTxnId = paymentIntent.Id,
-                ReservationId = 1, // TODO: actualizar con lógica real
-                Amount = paymentIntent.Amount / 100m,
-                Currency = paymentIntent.Currency.ToUpper(),
-                Status = "succeeded",
-                PaidAt = DateTime.UtcNow,
-                RawPayload = json
-            };
-
-            _context.Payments.Add(payment);
-            await _context.SaveChangesAsync();
+            return BadRequest("Missing Stripe-Signature header.");
         }
+
+        Event stripeEvent;
+
+        try
+        {
+            stripeEvent = EventUtility.ConstructEvent(
+                json,
+                Request.Headers["Stripe-Signature"],
+                _webhookSecret
+            );
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Stripe webhook error");
+            return BadRequest();
+        }
+
+            if (stripeEvent.Type == "payment_intent.succeeded")
+            {
+                var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
+                if (paymentIntent != null)
+                {
+                    if (paymentIntent.Metadata.TryGetValue("reservationId", out var reservationIdStr) &&
+                        long.TryParse(reservationIdStr, out var reservationId))
+                    {
+                        var payment = new Payment
+                        {
+                            Provider = "stripe",
+                            ProviderTxnId = paymentIntent.Id,
+                            ReservationId = reservationId,
+                            Amount = paymentIntent.Amount / 100m,
+                            Currency = paymentIntent.Currency.ToUpper(),
+                            Status = "succeeded",
+                            PaidAt = DateTime.UtcNow,
+                            RawPayload = json
+                        };
+
+                        _context.Payments.Add(payment);
+
+                    
+                        var reservation = await _context.Reservations.FindAsync(reservationId);
+                        if (reservation is not null)
+                        {
+                            reservation.Status = "Paid";
+                        }
+
+                        await _context.SaveChangesAsync();
+                    }
+                    else
+                    {
+                        _logger.LogWarning("No se encontró metadata 'reservationId' o no es válido.");
+                    }
+                }
+            }
+
+            return Ok();
     }
 
-    return Ok();
+    [HttpPost("create-intent")]
+    public async Task<IActionResult> CreateIntent([FromBody] CreatePaymentRequestDtos req)
+    {
+        var intent = await _stripeService.CreatePaymentIntent(req.Amount, req.ReservationId);
+        return Ok(new
+        {
+            clientSecret = intent.ClientSecret
+        });
+    }
+
 }
-}
-   
+

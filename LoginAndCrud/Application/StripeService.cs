@@ -15,7 +15,11 @@ public class StripeService
 
     public IConfiguration Config => _config;
     public AppDbContext Db => _db;
-
+    public StripeService(IConfiguration config)
+    {
+        _config = config;
+        StripeConfiguration.ApiKey = _config["Stripe:SecretKey"];
+    }
     public StripeService(IConfiguration config, AppDbContext db)
     {
         _config = config;
@@ -63,5 +67,21 @@ public class StripeService
         var session = await service.CreateAsync(options);
 
         return session.Url;
+    }
+
+    public async Task<PaymentIntent> CreatePaymentIntent(decimal amount, int reservationId)
+    {
+        var options = new PaymentIntentCreateOptions
+        {
+            Amount = (long)(amount * 100), // convertir a centavos
+            Currency = "usd",
+            Metadata = new Dictionary<string, string>
+            {
+                { "reservationId", reservationId.ToString() }
+            }
+        };
+
+        var service = new PaymentIntentService();
+        return await service.CreateAsync(options);
     }
 }

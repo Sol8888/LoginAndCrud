@@ -27,6 +27,8 @@ builder.Services.AddScoped<IActivityCategoryService, ActivityCategoryService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<StripeService>();
 
+
+
 builder.Services.AddControllers(); // MVC
 
 StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
