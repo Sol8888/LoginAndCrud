@@ -6,6 +6,7 @@ using Microsoft.AspNetCore.Authentication.JwtBearer;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.IdentityModel.Tokens;
 using Microsoft.OpenApi.Models;
+using Stripe;
 
 
 var builder = WebApplication.CreateBuilder(args);
@@ -24,8 +25,12 @@ builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IActivityCategoryService, ActivityCategoryService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
+builder.Services.AddScoped<StripeService>();
 
 builder.Services.AddControllers(); // MVC
+
+StripeConfiguration.ApiKey = builder.Configuration["Stripe:SecretKey"];
+
 
 //  Swagger
 builder.Services.AddEndpointsApiExplorer();

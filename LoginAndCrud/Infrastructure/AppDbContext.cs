@@ -16,6 +16,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<ActivityCategory> ActivityCategories { get; set; }
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<Reservation> Reservations { get; set; } = default!;
+    public DbSet<Payment> Payments => Set<Payment>();
 
     protected override void OnModelCreating(ModelBuilder b)
     {
