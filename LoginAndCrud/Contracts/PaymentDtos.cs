@@ -5,3 +5,8 @@ public record CreateStripePaymentRequest(
     decimal Amount,
     string Currency
 );
+
+public class CheckoutRequest
+{
+    public long ReservationId { get; set; }
+}
