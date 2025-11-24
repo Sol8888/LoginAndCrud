@@ -8,6 +8,7 @@ using Stripe;
 using Microsoft.Extensions.Configuration;
 using System.IO;
 using System.Threading.Tasks;
+using Microsoft.Extensions.Logging;
 
 
 namespace LoginAndCrud.Controllers;
@@ -18,52 +19,66 @@ public class PaymentsController : ControllerBase
 {
     private readonly AppDbContext _context;
     private readonly string _webhookSecret;
+    private readonly ILogger<PaymentsController> _logger;
 
-    public PaymentsController(AppDbContext context, IConfiguration config)
+    public PaymentsController(AppDbContext context, IConfiguration config, ILogger<PaymentsController> logger)
     {
         _context = context;
         _webhookSecret = config["Stripe:WebhookSecret"];
+        _logger = logger;
     }
 
     [HttpPost("webhook")]
-    public async Task<IActionResult> StripeWebhook()
+public async Task<IActionResult> StripeWebhook()
+{
+    var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
+
+    var stripeSignature = Request.Headers["Stripe-Signature"].FirstOrDefault();
+
+    if (string.IsNullOrEmpty(stripeSignature))
     {
-        var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-        try
-        {
-            var stripeEvent = EventUtility.ConstructEvent(
-                json,
-                Request.Headers["Stripe-Signature"],
-                _webhookSecret
-            );
+        return BadRequest("Missing Stripe-Signature header.");
+    }
 
-            if (stripeEvent.Type == "payment_intent.succeeded")
+    Event stripeEvent;
+
+    try
+    {
+        stripeEvent = EventUtility.ConstructEvent(
+            json,
+            Request.Headers["Stripe-Signature"],
+            _webhookSecret
+        );
+    }
+    catch (Exception ex)
+    {
+        _logger.LogError(ex, "Stripe webhook error");
+        return BadRequest();
+    }
+
+    if (stripeEvent.Type == "payment_intent.succeeded")
+        {
+        var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
+        if (paymentIntent != null)
+        {
+            var payment = new Payment
             {
-                var intent = stripeEvent.Data.Object as PaymentIntent;
+                Provider = "stripe",
+                ProviderTxnId = paymentIntent.Id,
+                ReservationId = 1, // TODO: actualizar con lógica real
+                Amount = paymentIntent.Amount / 100m,
+                Currency = paymentIntent.Currency.ToUpper(),
+                Status = "succeeded",
+                PaidAt = DateTime.UtcNow,
+                RawPayload = json
+            };
 
-                // Aquí haces lo que necesites, por ejemplo guardar en la base de datos
-                var payment = new Payment
-                {
-                    ReservationId = 0, // debes mapear con tu lógica real
-                    Provider = "Stripe",
-                    ProviderTxnId = intent.Id,
-                    Amount = (decimal)intent.AmountReceived / 100,
-                    Currency = intent.Currency.ToUpper(),
-                    Status = intent.Status,
-                    PaidAt = DateTime.UtcNow,
-                    RawPayload = json
-                };
-
-                _context.Payments.Add(payment);
-                await _context.SaveChangesAsync();
-            }
-
-            return Ok();
-        }
-        catch (StripeException e)
-        {
-            return BadRequest(e.Message);
+            _context.Payments.Add(payment);
+            await _context.SaveChangesAsync();
         }
     }
+
+    return Ok();
+}
 }
    
