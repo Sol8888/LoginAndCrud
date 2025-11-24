@@ -78,26 +78,38 @@ public class PaymentsController : ControllerBase
                             RawPayload = json
                         };
 
-                        _context.Payments.Add(payment);
+                    _context.Payments.Add(payment);
 
-                    
-                        var reservation = await _context.Reservations.FindAsync(reservationId);
-                        if (reservation is not null)
-                        {
-                            reservation.PaymentId = payment.Id;
-                            reservation.Status = "Paid";
-                            try
-                            {
-                                await _context.SaveChangesAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Error al guardar la reserva pagada.");
-                            }
-
-                        }
-
+                    // Guardamos primero el pago para obtener el ID generado
+                    try
+                    {
+                        await _context.SaveChangesAsync();
                     }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "Error al guardar el pago.");
+                        return StatusCode(500, "Error al guardar el pago.");
+                    }
+
+                    // Ahora actualizamos la reserva
+                    var reservation = await _context.Reservations.FindAsync(reservationId);
+                    if (reservation is not null)
+                    {
+                        reservation.PaymentId = payment.Id;
+                        reservation.Status = "Paid";
+
+                        try
+                        {
+                            await _context.SaveChangesAsync();
+                        }
+                        catch (Exception ex)
+                        {
+                            _logger.LogError(ex, "Error al actualizar la reserva.");
+                            return StatusCode(500, "Error al actualizar la reserva.");
+                        }
+                    }
+
+                }
                     else
                     {
                         _logger.LogWarning("No se encontró metadata 'reservationId' o no es válido.");
@@ -117,6 +129,22 @@ public class PaymentsController : ControllerBase
             clientSecret = intent.ClientSecret
         });
     }
+
+    [HttpPost("create-checkout-session")]
+    public async Task<IActionResult> CreateCheckoutSession([FromBody] long reservationId)
+    {
+        try
+        {
+            var sessionUrl = await _stripeService.CreateCheckoutSession(reservationId);
+            return Ok(new { url = sessionUrl });
+        }
+        catch (Exception ex)
+        {
+            _logger.LogError(ex, "Error al crear la sesión de Stripe Checkout.");
+            return StatusCode(500, "Error al crear sesión de pago.");
+        }
+    }
+
 
 }
 
