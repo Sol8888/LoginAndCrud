@@ -13,6 +13,9 @@ public class StripeService
     private readonly IConfiguration _config;
     private readonly AppDbContext _db;
 
+    public IConfiguration Config => _config;
+    public AppDbContext Db => _db;
+
     public StripeService(IConfiguration config, AppDbContext db)
     {
         _config = config;
