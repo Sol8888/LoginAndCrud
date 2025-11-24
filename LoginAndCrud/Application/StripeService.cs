@@ -8,7 +8,13 @@ using LoginAndCrud.Infrastructure.Security;
 
 namespace LoginAndCrud.Application;
 
-public class StripeService
+public interface IStripeService
+{
+    Task<string> CreateCheckoutSession(long reservationId);
+    Task<PaymentIntent> CreatePaymentIntent(decimal amount, int reservationId);
+}
+
+public class StripeService : IStripeService
 {
     private readonly IConfiguration _config;
     private readonly AppDbContext _db;

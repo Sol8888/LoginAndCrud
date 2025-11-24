@@ -20,12 +20,14 @@ public class PaymentsController : ControllerBase
     private readonly AppDbContext _context;
     private readonly string _webhookSecret;
     private readonly ILogger<PaymentsController> _logger;
+    private readonly IStripeService _stripeService;
 
-    public PaymentsController(AppDbContext context, IConfiguration config, ILogger<PaymentsController> logger)
+    public PaymentsController(AppDbContext context, IConfiguration config, ILogger<PaymentsController> logger, IStripeService stripeService)
     {
         _context = context;
         _webhookSecret = config["Stripe:WebhookSecret"];
         _logger = logger;
+        _stripeService = stripeService;
     }
 
     [HttpPost("webhook")]

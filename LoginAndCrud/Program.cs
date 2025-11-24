@@ -25,7 +25,7 @@ builder.Services.AddScoped<IActivityService, ActivityService>();
 builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IActivityCategoryService, ActivityCategoryService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
-builder.Services.AddScoped<StripeService>();
+builder.Services.AddScoped<IStripeService, StripeService>();
 
 
 
