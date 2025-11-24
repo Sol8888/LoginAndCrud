@@ -84,10 +84,19 @@ public class PaymentsController : ControllerBase
                         var reservation = await _context.Reservations.FindAsync(reservationId);
                         if (reservation is not null)
                         {
+                            reservation.PaymentId = payment.Id;
                             reservation.Status = "Paid";
+                            try
+                            {
+                                await _context.SaveChangesAsync();
+                            }
+                            catch (Exception ex)
+                            {
+                                _logger.LogError(ex, "Error al guardar la reserva pagada.");
+                            }
+
                         }
 
-                        await _context.SaveChangesAsync();
                     }
                     else
                     {
