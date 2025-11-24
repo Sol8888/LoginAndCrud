@@ -15,7 +15,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<EmployeeCompany> EmployeeCompany { get; set; } = default!;
     public DbSet<ActivityCategory> ActivityCategories { get; set; }
     public DbSet<Category> Categories { get; set; } = default!;
-
+    public DbSet<Reservation> Reservations { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder b)
     {
