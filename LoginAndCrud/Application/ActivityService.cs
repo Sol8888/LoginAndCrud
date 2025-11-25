@@ -8,6 +8,7 @@ namespace LoginAndCrud.Application;
 
 public interface IActivityService
 {
+    Task<List<ActivityResponse>> GetAllAsync(CancellationToken ct);
     Task<List<ActivityResponse>> GetAllAsync(int userId, CancellationToken ct);
     Task<ActivityResponse?> GetByIdAsync(int id, int userId, CancellationToken ct);
     Task<ActivityResponse> CreateAsync(CreateActivityRequest req, int userId, string actor, CancellationToken ct);
@@ -211,5 +212,11 @@ public class ActivityService(AppDbContext db) : IActivityService
 
         db.Activities.Remove(a);
         await db.SaveChangesAsync(ct);
+    }
+
+    public async Task<List<ActivityResponse>> GetAllAsync(CancellationToken ct)
+    {
+        var list = await db.Activities.ToListAsync(ct);
+        return list.Select(Map).ToList();
     }
 }

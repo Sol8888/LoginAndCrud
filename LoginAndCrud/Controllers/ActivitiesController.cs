@@ -52,10 +52,11 @@ public class ActivitiesController(IActivityService svc) : ControllerBase
         return a is null ? NotFound() : Ok(a);
     }
 
-    [HttpGet("all")]
-    [Authorize(Roles = "User")]
-    public async Task<ActionResult<List<ActivityResponse>>> GetAll(CancellationToken ct)
+    [HttpGet("all-global")]
+    [Authorize(Roles = "Admin, User")] 
+    public async Task<ActionResult<List<ActivityResponse>>> GetAllGlobal(CancellationToken ct)
     {
-        return Ok(await svc.GetAllAsync(CurrentUserId, ct));
+        var activities = await svc.GetAllAsync(ct);
+        return Ok(activities);
     }
 }
