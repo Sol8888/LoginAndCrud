@@ -33,15 +33,12 @@ public class PaymentsController : ControllerBase
 
     [HttpPost("webhook")]
     public async Task<IActionResult> StripeWebhook()
-{
+    {
         var json = await new StreamReader(HttpContext.Request.Body).ReadToEndAsync();
-
         var stripeSignature = Request.Headers["Stripe-Signature"].FirstOrDefault();
 
         if (string.IsNullOrEmpty(stripeSignature))
-        {
             return BadRequest("Missing Stripe-Signature header.");
-        }
 
         Event stripeEvent;
 
@@ -49,78 +46,77 @@ public class PaymentsController : ControllerBase
         {
             stripeEvent = EventUtility.ConstructEvent(
                 json,
-                Request.Headers["Stripe-Signature"],
+                stripeSignature,
                 _webhookSecret
             );
         }
         catch (Exception ex)
         {
-            _logger.LogError(ex, "Stripe webhook error");
+            _logger.LogError(ex, "Stripe webhook signature validation failed.");
             return BadRequest();
         }
 
-            if (stripeEvent.Type == "payment_intent.succeeded")
+        // Solo manejamos pagos exitosos
+        if (stripeEvent.Type == "payment_intent.succeeded")
+        {
+            var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
+
+            if (paymentIntent?.Metadata == null ||
+                !paymentIntent.Metadata.TryGetValue("reservationId", out var reservationIdStr) ||
+                !long.TryParse(reservationIdStr, out var reservationId))
             {
-                var paymentIntent = stripeEvent.Data.Object as PaymentIntent;
-                if (paymentIntent != null)
-                {
-                    if (paymentIntent.Metadata.TryGetValue("reservationId", out var reservationIdStr) &&
-                        long.TryParse(reservationIdStr, out var reservationId))
-                    {
-                        var payment = new Payment
-                        {
-                            Provider = "stripe",
-                            ProviderTxnId = paymentIntent.Id,
-                            ReservationId = reservationId,
-                            Amount = paymentIntent.Amount / 100m,
-                            Currency = paymentIntent.Currency.ToUpper(),
-                            Status = "succeeded",
-                            PaidAt = DateTime.UtcNow,
-                            RawPayload = json
-                        };
-
-                        _context.Payments.Add(payment);
-                    
-
-                    // Guardamos primero el pago para obtener el ID generado
-                        try
-                        {
-                            await _context.SaveChangesAsync();
-                        }
-                        catch (Exception ex)
-                        {
-                            _logger.LogError(ex, "Error al guardar el pago.");
-                            return StatusCode(500, "Error al guardar el pago.");
-                        }
-
-                        // Ahora actualizamos la reserva
-                        var reservation = await _context.Reservations.FindAsync(reservationId);
-                        if (reservation is not null)
-                        {
-                            reservation.PaymentId = payment.Id;
-                            reservation.Status = "Paid";
-
-                            try
-                            {
-                                await _context.SaveChangesAsync();
-                            }
-                            catch (Exception ex)
-                            {
-                                _logger.LogError(ex, "Error al actualizar la reserva.");
-                                return StatusCode(500, "Error al actualizar la reserva.");
-                            }
-                        }
-
-                    }
-                    else
-                    {
-                        _logger.LogWarning("No se encontró metadata 'reservationId' o no es válido.");
-                    }
-                }
+                _logger.LogWarning("El webhook no contenía metadata válida con reservationId.");
+                return BadRequest("Metadata faltante o inválida.");
             }
 
-            return Ok();
+            // Verificar si ya existe un Payment con el mismo ProviderTxnId
+            var exists = await _context.Payments.AnyAsync(p => p.ProviderTxnId == paymentIntent.Id);
+            if (exists)
+            {
+                _logger.LogInformation("El pago ya fue procesado previamente.");
+                return Ok(); // evitar duplicados
+            }
+
+            var payment = new Payment
+            {
+                Provider = "stripe",
+                ProviderTxnId = paymentIntent.Id,
+                ReservationId = reservationId,
+                Amount = paymentIntent.Amount / 100m,
+                Currency = paymentIntent.Currency?.ToUpper(),
+                Status = "succeeded",
+                PaidAt = DateTime.UtcNow,
+                RawPayload = json
+            };
+
+            _context.Payments.Add(payment);
+            await _context.SaveChangesAsync(); // 👈 ahora payment.Id está disponible
+
+            var reservation = await _context.Reservations.FindAsync(reservationId);
+            if (reservation is not null)
+            {
+                reservation.PaymentId = payment.Id;
+                reservation.Status = "Paid";
+
+                try
+                {
+                    await _context.SaveChangesAsync();
+                    _logger.LogInformation($"Reserva {reservation.Id} actualizada a estado 'Paid'");
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "Error al guardar la reserva pagada.");
+                }
+            }
+            else
+            {
+                _logger.LogWarning($"No se encontró reserva con ID: {reservationId}");
+            }
+        }
+
+        return Ok();
     }
+
 
     [HttpPost("create-intent")]
     public async Task<IActionResult> CreateIntent([FromBody] CreatePaymentRequestDtos req)
