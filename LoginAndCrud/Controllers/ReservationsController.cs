@@ -19,7 +19,7 @@ public class ReservationsController(IReservationService svc) : ControllerBase
     public async Task<ActionResult<ReservationResponse>> Create([FromBody] CreateReservationRequest req, CancellationToken ct)
         => Ok(await svc.CreateAsync(req, CurrentUserId, Actor, ct));
 
-    [HttpGet]
+    [HttpGet("Mine")]
     [Authorize(Roles = "Admin")]
     public async Task<ActionResult<PagedReservationsResponse>> GetMine([FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
         => Ok(await svc.GetMyReservationsAsync(CurrentUserId, page, pageSize, ct));
@@ -39,6 +39,16 @@ public class ReservationsController(IReservationService svc) : ControllerBase
         var result = await svc.GetByCompanyAsync(companyId, page, pageSize, ct);
         return Ok(result);
     }
+
+
+    [HttpGet("all")]
+    [Authorize(Roles = "Admin")]
+    public async Task<ActionResult<PagedReservationsResponse>> GetAll(
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 20,
+    CancellationToken ct = default)
+    => Ok(await svc.GetAllAsync(page, pageSize, ct));
+
 
 
 }

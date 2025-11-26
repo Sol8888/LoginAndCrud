@@ -13,6 +13,8 @@ public interface IReservationService
     Task<PagedReservationsResponse> GetByUserAsync(int userId, int page, int pageSize, CancellationToken ct);
     Task<PagedReservationsResponse> GetByCompanyAsync(int companyId, int page, int pageSize, CancellationToken ct);
 
+    Task<PagedReservationsResponse> GetAllAsync(int page, int pageSize, CancellationToken ct);
+
 }
 public class ReservationService(AppDbContext db) : IReservationService
 {
@@ -103,5 +105,25 @@ public class ReservationService(AppDbContext db) : IReservationService
 
         return new(page, pageSize, total, items);
     }
+
+    public async Task<PagedReservationsResponse> GetAllAsync(int page, int pageSize, CancellationToken ct)
+    {
+        var query = db.Reservations
+            .OrderByDescending(r => r.ReservedAt);
+
+        var total = await query.CountAsync(ct);
+
+        var items = await query
+            .Skip((page - 1) * pageSize)
+            .Take(pageSize)
+            .Select(r => new ReservationResponse(
+                r.Id, r.ActivityId, r.UserId,
+                r.Quantity, r.UnitPrice, r.TotalAmount,
+                r.Status, r.ReservedAt, r.ExpiresAt, r.CreatedBy))
+            .ToListAsync(ct);
+
+        return new(page, pageSize, total, items);
+    }
+
 
 }
