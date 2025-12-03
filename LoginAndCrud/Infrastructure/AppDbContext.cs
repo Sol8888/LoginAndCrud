@@ -17,6 +17,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
     public DbSet<Category> Categories { get; set; } = default!;
     public DbSet<Reservation> Reservations { get; set; } = default!;
     public DbSet<Payment> Payments => Set<Payment>();
+    public DbSet<Review> Reviews { get; set; } = default!;
 
     protected override void OnModelCreating(ModelBuilder b)
     {
@@ -94,6 +95,26 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             // Propiedades adicionales
             e.Property(ac => ac.CreatedBy).HasMaxLength(100);
             e.Property(ac => ac.UpdatedBy).HasMaxLength(100);
+        });
+        b.Entity<Review>(e =>
+        {
+            e.ToTable("Reviews", "dbo");
+            e.HasKey(r => r.Id);
+
+            e.Property(r => r.TargetType).HasMaxLength(50).IsRequired();
+            e.Property(r => r.Title).HasMaxLength(200);
+            e.Property(r => r.Comment).HasMaxLength(2000);
+            e.Property(r => r.CreatedAt).HasDefaultValueSql("SYSUTCDATETIME()");
+
+            e.HasOne(r => r.User)
+                .WithMany()
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade);
+
+            e.HasOne(r => r.Activity)
+                .WithMany(a => a.Reviews)
+                .HasForeignKey(r => r.TargetId)
+                .OnDelete(DeleteBehavior.Cascade);
         });
     }
 }

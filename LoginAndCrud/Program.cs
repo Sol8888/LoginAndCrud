@@ -18,6 +18,7 @@ builder.Services.AddDbContext<AppDbContext>(opt =>
     opt.UseSqlServer(builder.Configuration.GetConnectionString("DefaultConnection")));
 
 builder.Services.AddScoped<IAuthService, AuthService>();
+builder.Services.AddScoped<LoginAndCrud.Application.IReviewService, LoginAndCrud.Application.ReviewService>();
 builder.Services.AddScoped<IUserService, UserService>();
 builder.Services.AddScoped<ICompanyService, CompanyService>();
 builder.Services.AddScoped<IEmployeeService, EmployeeService>();
@@ -26,6 +27,7 @@ builder.Services.AddScoped<ICategoryService, CategoryService>();
 builder.Services.AddScoped<IActivityCategoryService, ActivityCategoryService>();
 builder.Services.AddScoped<IReservationService, ReservationService>();
 builder.Services.AddScoped<IStripeService, StripeService>();
+
 
 
 
