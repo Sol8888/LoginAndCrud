@@ -38,8 +38,14 @@ public class StripeService : IStripeService
         var reservation = await _db.Reservations.Include(r => r.User).FirstOrDefaultAsync(r => r.Id == reservationId)
             ?? throw new Exception("Reserva no encontrada");
 
-        var successUrl = _config["Stripe:SuccessUrl"];
-        var cancelUrl = _config["Stripe:CancelUrl"];
+        var successUrlTemplate = _config["Stripe:SuccessUrl"];
+        var cancelUrlTemplate = _config["Stripe:CancelUrl"];
+
+        // Reemplazamos {reservationId} por el valor real
+        var successUrl = successUrlTemplate.Replace("{reservationId}", reservation.Id.ToString());
+        var cancelUrl = cancelUrlTemplate.Replace("{reservationId}", reservation.Id.ToString());
+
+
 
         var options = new SessionCreateOptions
         {
@@ -67,6 +73,7 @@ public class StripeService : IStripeService
             },
             SuccessUrl = successUrl,
             CancelUrl = cancelUrl
+
         };
 
         var service = new SessionService();
