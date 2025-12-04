@@ -50,7 +50,7 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(ec => ec.User)
                 .WithMany()
                 .HasForeignKey(ec => ec.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             e.Property(ec => ec.RoleInCompany).HasMaxLength(50);
             e.Property(ec => ec.CreatedBy).HasMaxLength(100);
@@ -109,12 +109,30 @@ public class AppDbContext(DbContextOptions<AppDbContext> options) : DbContext(op
             e.HasOne(r => r.User)
                 .WithMany()
                 .HasForeignKey(r => r.UserId)
-                .OnDelete(DeleteBehavior.Cascade);
+                .OnDelete(DeleteBehavior.Restrict);
 
             e.HasOne(r => r.Activity)
                 .WithMany(a => a.Reviews)
                 .HasForeignKey(r => r.TargetId)
                 .OnDelete(DeleteBehavior.Cascade);
         });
+
+        // RESERVATION
+        b.Entity<Reservation>(e =>
+        {
+            e.ToTable("Reservations", "dbo");
+            e.HasKey(r => r.Id);
+
+            e.HasOne(r => r.Activity)
+                .WithMany(a => a.Reservations)
+                .HasForeignKey(r => r.ActivityId)
+                .OnDelete(DeleteBehavior.Restrict); // cascada aquí
+
+            e.HasOne(r => r.User)
+                .WithMany(u => u.Reservations)
+                .HasForeignKey(r => r.UserId)
+                .OnDelete(DeleteBehavior.Cascade); // evita cascada
+        });
+
     }
-}
+    }

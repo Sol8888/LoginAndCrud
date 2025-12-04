@@ -15,6 +15,8 @@ public interface IReservationService
 
     Task<PagedReservationsResponse> GetAllAsync(int page, int pageSize, CancellationToken ct);
     Task<ReservationResponse> UpdateStatusAsync(int reservationId, bool isDone, CancellationToken ct);
+    Task<int> GetCompanyIdForUserAsync(int userId, CancellationToken ct);
+
 
 
 
@@ -150,5 +152,17 @@ public class ReservationService(AppDbContext db) : IReservationService
             reservation.CreatedBy
         );
     }
+    public async Task<int> GetCompanyIdForUserAsync(int userId, CancellationToken ct)
+    {
+        var companyId = await db.Companies
+            .Where(c => c.OwnerUserId == userId ||
+                        db.EmployeeCompanies.Any(ec => ec.UserId == userId && ec.CompanyId == c.Id))
+            .Select(c => c.Id)
+            .FirstOrDefaultAsync(ct);
 
+        if (companyId == 0)
+            throw new InvalidOperationException("El usuario no está asociado a una empresa.");
+
+        return companyId;
+    }
 }
