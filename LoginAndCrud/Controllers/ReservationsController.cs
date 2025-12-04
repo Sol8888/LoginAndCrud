@@ -49,6 +49,14 @@ public class ReservationsController(IReservationService svc) : ControllerBase
     CancellationToken ct = default)
     => Ok(await svc.GetAllAsync(page, pageSize, ct));
 
+    [HttpPut("{id}/status")]
+    [Authorize(Roles = "User")]
+    public async Task<ActionResult<ReservationResponse>> UpdateStatus(int id, [FromBody] bool isDone, CancellationToken ct)
+    {
+        var result = await svc.UpdateStatusAsync(id, isDone, ct);
+        return Ok(result);
+    }
+
 
 
 }

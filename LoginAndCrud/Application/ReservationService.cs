@@ -14,6 +14,9 @@ public interface IReservationService
     Task<PagedReservationsResponse> GetByCompanyAsync(int companyId, int page, int pageSize, CancellationToken ct);
 
     Task<PagedReservationsResponse> GetAllAsync(int page, int pageSize, CancellationToken ct);
+    Task<ReservationResponse> UpdateStatusAsync(int reservationId, bool isDone, CancellationToken ct);
+
+
 
 }
 public class ReservationService(AppDbContext db) : IReservationService
@@ -125,5 +128,27 @@ public class ReservationService(AppDbContext db) : IReservationService
         return new(page, pageSize, total, items);
     }
 
+    public async Task<ReservationResponse> UpdateStatusAsync(int reservationId, bool isDone, CancellationToken ct)
+    {
+        var reservation = await db.Reservations
+            .FirstOrDefaultAsync(r => r.Id == reservationId, ct)
+            ?? throw new KeyNotFoundException("Reserva no encontrada");
+        reservation.Status = isDone ? "Confirmed" : "Pending";
+
+        await db.SaveChangesAsync(ct);
+
+        return new ReservationResponse(
+            reservation.Id,
+            reservation.ActivityId,
+            reservation.UserId,
+            reservation.Quantity,
+            reservation.UnitPrice,
+            reservation.TotalAmount,
+            reservation.Status,
+            reservation.ReservedAt,
+            reservation.ExpiresAt,
+            reservation.CreatedBy
+        );
+    }
 
 }

@@ -26,5 +26,6 @@ public class Activity
     public Company Company { get; set; } = default!;
 
     public ICollection<ActivityCategory> ActivityCategories { get; set; } = new List<ActivityCategory>();
+    public ICollection<Review> Reviews { get; set; } = new List<Review>(); 
 
 }
