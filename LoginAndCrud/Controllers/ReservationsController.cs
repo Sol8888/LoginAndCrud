@@ -11,8 +11,10 @@ namespace LoginAndCrud.Controllers;
 [Authorize]
 public class ReservationsController(IReservationService svc) : ControllerBase
 {
-    private string Actor => User.Identity?.Name ?? "system";
+  
+    private string Actor => User.Identity?.Name ?? User.FindFirstValue(ClaimTypes.NameIdentifier) ?? "system";
     private int CurrentUserId => int.TryParse(User.FindFirstValue(ClaimTypes.NameIdentifier), out var id) ? id : 0;
+    private string Role => User.FindFirstValue(ClaimTypes.Role) ?? "";
 
     [HttpPost]
     [Authorize(Roles = "User")]
@@ -32,13 +34,31 @@ public class ReservationsController(IReservationService svc) : ControllerBase
         return Ok(result);
     }
 
-    [HttpGet("by-company/{companyId:int}")]
-    [Authorize(Roles = "Company,Employee")]
-    public async Task<ActionResult<PagedReservationsResponse>> GetByCompany(int companyId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    [HttpGet("by-company/{companyId:int?}")]
+    [Authorize(Roles = "Admin,Company,Employee")]
+    public async Task<ActionResult<PagedReservationsResponse>> GetByCompany(
+     int? companyId,
+     [FromQuery] int page = 1,
+     [FromQuery] int pageSize = 20,
+     CancellationToken ct = default)
     {
-        var result = await svc.GetByCompanyAsync(companyId, page, pageSize, ct);
+        if (Role is "Company" or "Employee")
+        {
+            if (Role == "Employee" || companyId is null or <= 0)
+            {
+                companyId = await svc.GetCompanyIdForUserAsync(CurrentUserId, ct);
+            }
+        }
+
+        if (companyId is null or <= 0)
+        {
+            return BadRequest("Debe proporcionar un companyId válido.");
+        }
+
+        var result = await svc.GetByCompanyAsync(companyId.Value, page, pageSize, ct);
         return Ok(result);
     }
+
 
 
     [HttpGet("all")]
