@@ -31,14 +31,25 @@ public class ReservationsController(IReservationService svc) : ControllerBase
         var result = await svc.GetByUserAsync(userId, page, pageSize, ct);
         return Ok(result);
     }
-
-    [HttpGet("by-company/{companyId:int}")]
+    [HttpGet("by-company")]
     [Authorize(Roles = "Company,Employee")]
-    public async Task<ActionResult<PagedReservationsResponse>> GetByCompany(int companyId, [FromQuery] int page = 1, [FromQuery] int pageSize = 20, CancellationToken ct = default)
+    public async Task<ActionResult<PagedReservationsResponse>> GetByCompany(
+    [FromQuery] int page = 1,
+    [FromQuery] int pageSize = 20,
+    CancellationToken ct = default)
     {
-        var result = await svc.GetByCompanyAsync(companyId, page, pageSize, ct);
+        var company = await db.Companies
+            .Include(c => c.Employees)
+            .FirstOrDefaultAsync(c =>
+                 c.OwnerUserId == CurrentUserId ||
+                 c.Employees.Any(e => e.UserId == CurrentUserId), ct)
+            ?? throw new KeyNotFoundException("Empresa no encontrada.");
+
+        var result = await svc.GetByCompanyAsync(company.Id, page, pageSize, ct);
+
         return Ok(result);
     }
+
 
 
     [HttpGet("all")]
