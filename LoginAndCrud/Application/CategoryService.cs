@@ -3,6 +3,7 @@ using LoginAndCrud.Domain;
 using LoginAndCrud.Infrastructure;
 using LoginAndCrud.Infrastructure.Security;
 using Microsoft.EntityFrameworkCore;
+using System.ComponentModel.DataAnnotations;
 
 
 namespace LoginAndCrud.Application;
@@ -16,7 +17,7 @@ public interface ICategoryService
     Task DeleteAsync(int id, CancellationToken ct);
 }
 
-public class CategoryService(AppDbContext db) : ICategoryService
+public class CategoryService(AppDbContext db, ICategoryValidator validator) : ICategoryService
 {
     private static CategoryResponse Map(Category c) =>
         new(c.Id, c.Name, c.CreatedAt, c.UpdatedAt, c.CreatedBy, c.UpdatedBy);
@@ -42,19 +43,12 @@ public class CategoryService(AppDbContext db) : ICategoryService
 
     public async Task<CategoryResponse> CreateAsync(CreateCategoryRequest req, string actor, CancellationToken ct)
     {
-        if (await db.Categories.AnyAsync(c => c.Name == req.Name, ct))
-            throw new InvalidOperationException("Ya existe una categoría con este nombre.");
+        await validator.ValidateCreateAsync(req, ct);
 
-        var category = new Category
-        {
-            Name = req.Name,
-            CreatedAt = DateTime.UtcNow,
-            CreatedBy = actor
-        };
-
+        var category = CategoryFactory.Create(req, actor);
         db.Categories.Add(category);
-        await db.SaveChangesAsync(ct);
 
+        await db.SaveChangesAsync(ct);
         return Map(category);
     }
 
@@ -63,17 +57,11 @@ public class CategoryService(AppDbContext db) : ICategoryService
         var category = await db.Categories.FindAsync(new object[] { id }, ct)
             ?? throw new KeyNotFoundException("Categoría no encontrada.");
 
-        if (!string.Equals(category.Name, req.Name, StringComparison.OrdinalIgnoreCase))
-        {
-            var exists = await db.Categories.AnyAsync(c => c.Name == req.Name && c.Id != id, ct);
-            if (exists) throw new InvalidOperationException("Ya existe otra categoría con este nombre.");
-            category.Name = req.Name;
-        }
+        await validator.ValidateUpdateAsync(id, req, ct);
 
-        category.UpdatedAt = DateTime.UtcNow;
-        category.UpdatedBy = actor;
-
+        CategoryFactory.Update(category, req, actor);
         await db.SaveChangesAsync(ct);
+
         return Map(category);
     }
 
