@@ -93,6 +93,14 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
         };
     });
 
+builder.Services.AddCors(options =>
+{
+    options.AddPolicy("DevCors", policy =>
+        policy.WithOrigins("http://localhost:3000", "http://localhost:8080")
+              .AllowAnyHeader()
+              .AllowAnyMethod());
+});
+
 builder.Services.AddAuthorization();
 
 var app = builder.Build();
@@ -107,6 +115,10 @@ app.UseSwaggerUI(c =>
     c.SwaggerEndpoint("/swagger/v1/swagger.json", "LoginAndCrud API v1");
     c.RoutePrefix = "swagger"; // UI en /swagger
 });
+
+
+
+app.UseCors("DevCors");
 app.MapControllers();
 
 app.Run();
