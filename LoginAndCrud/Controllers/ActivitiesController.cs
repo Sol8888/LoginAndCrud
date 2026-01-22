@@ -16,7 +16,7 @@ public class ActivitiesController(IActivityService svc) : ControllerBase
     private string Role => User.FindFirstValue(ClaimTypes.Role) ?? "";
 
     [HttpGet]
-    [Authorize(Roles = "Admin,Company,Employee")]
+    [Authorize(Roles = "Admin,Company,Employee,User")]
     public async Task<ActionResult<PagedActivitiesResponse>> Get(
     [FromQuery] int page = 1,
     [FromQuery] int pageSize = 20,
