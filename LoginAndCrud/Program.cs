@@ -98,8 +98,8 @@ builder.Services.AddAuthentication(JwtBearerDefaults.AuthenticationScheme)
 
 builder.Services.AddCors(options =>
 {
-    options.AddPolicy("DevCors", policy =>
-        policy.WithOrigins()
+options.AddPolicy("DevCors", policy =>
+    policy.WithOrigins("https://icy-mud-034648910.1.azurestaticapps.net")
               .AllowAnyHeader()
               .AllowAnyMethod());
 });
